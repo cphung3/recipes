@@ -55,6 +55,13 @@ class PlantDetailViewModel @Inject constructor(
         }
     }
 
+    fun removePlantFromGarden() {
+        viewModelScope.launch {
+            gardenPlantingRepository.removeGardenPlanting(plantId)
+            _showSnackbar.value = true
+        }
+    }
+
     fun dismissSnackbar() {
         _showSnackbar.value = false
     }

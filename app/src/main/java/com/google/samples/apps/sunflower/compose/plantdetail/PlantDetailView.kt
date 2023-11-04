@@ -44,6 +44,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -106,6 +107,7 @@ import com.google.samples.apps.sunflower.viewmodels.PlantDetailViewModel
  */
 data class PlantDetailsCallbacks(
     val onFabClick: () -> Unit,
+    val onSubtractClick: () -> Unit,
     val onBackClick: () -> Unit,
     val onShareClick: (String) -> Unit,
     val onGalleryClick: (Plant) -> Unit
@@ -122,7 +124,7 @@ fun PlantDetailsScreen(
     val isPlanted = plantDetailsViewModel.isPlanted.collectAsState(initial = false).value
     val showSnackbar = plantDetailsViewModel.showSnackbar.observeAsState().value
 
-    if (plant != null && isPlanted != null && showSnackbar != null) {
+    if (plant != null && showSnackbar != null) {
         Surface {
             TextSnackbarContainer(
                 snackbarText = stringResource(R.string.added_plant_to_garden),
@@ -137,6 +139,9 @@ fun PlantDetailsScreen(
                         onBackClick = onBackClick,
                         onFabClick = {
                             plantDetailsViewModel.addPlantToGarden()
+                        },
+                        onSubtractClick = {
+                            plantDetailsViewModel.removePlantFromGarden()
                         },
                         onShareClick = onShareClick,
                         onGalleryClick = onGalleryClick,
@@ -225,6 +230,7 @@ fun PlantDetails(
                 maxOf(candidateHeight, 1.dp)
             },
             onFabClick = callbacks.onFabClick,
+            onSubtractClick = callbacks.onSubtractClick,
             onGalleryClick = { callbacks.onGalleryClick(plant) },
             contentAlpha = { contentAlpha.value }
         )
@@ -246,12 +252,13 @@ private fun PlantDetailsContent(
     imageHeight: Dp,
     onNamePosition: (Float) -> Unit,
     onFabClick: () -> Unit,
+    onSubtractClick: () -> Unit,
     onGalleryClick: () -> Unit,
     contentAlpha: () -> Float,
 ) {
     Column(Modifier.verticalScroll(scrollState)) {
         ConstraintLayout {
-            val (image, fab, info) = createRefs()
+            val (image, fab, sub, info) = createRefs()
 
             PlantImage(
                 imageUrl = plant.imageUrl,
@@ -267,6 +274,21 @@ private fun PlantDetailsContent(
                     onFabClick = onFabClick,
                     modifier = Modifier
                         .constrainAs(fab) {
+                            centerAround(image.bottom)
+                            absoluteRight.linkTo(
+                                parent.absoluteRight,
+                                margin = fabEndMargin
+                            )
+                        }
+                        .alpha(contentAlpha())
+                )
+            }
+            else {
+                val fabEndMargin = Dimens.PaddingSmall
+                PlantSubtract(
+                    onSubtractClick = onSubtractClick,
+                    modifier = Modifier
+                        .constrainAs(sub) {
                             centerAround(image.bottom)
                             absoluteRight.linkTo(
                                 parent.absoluteRight,
@@ -364,6 +386,26 @@ private fun PlantFab(
     ) {
         Icon(
             Icons.Filled.Add,
+            contentDescription = null
+        )
+    }
+}
+@Composable
+private fun PlantSubtract(
+    onSubtractClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val addPlantContentDescription = stringResource(R.string.subtract_plant)
+    FloatingActionButton(
+        onClick = onSubtractClick,
+        shape = MaterialTheme.shapes.small,
+        // Semantics in parent due to https://issuetracker.google.com/184825850
+        modifier = modifier.semantics {
+            contentDescription = addPlantContentDescription
+        }
+    ) {
+        Icon(
+            Icons.Filled.Delete,
             contentDescription = null
         )
     }
@@ -592,7 +634,7 @@ private fun PlantDetailContentPreview() {
                 Plant("plantId", "Tomato", "HTML<br>description", 6),
                 true,
                 true,
-                PlantDetailsCallbacks({ }, { }, { }, { })
+                PlantDetailsCallbacks({ }, { }, { }, { }, { })
             )
         }
     }
